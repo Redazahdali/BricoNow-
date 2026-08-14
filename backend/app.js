@@ -4,6 +4,8 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 
 const skillRoutes = require("./routes/skillRoutes");
+const userRoutes = require("./routes/userRoutes");
+const errorMiddleware = require("./middlewares/errorMiddleware");
 
 const app = express();
 
@@ -23,5 +25,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/skills", skillRoutes);
+app.use("/api/users", userRoutes);
+app.use(errorMiddleware);
 
 module.exports = app;
