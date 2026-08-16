@@ -98,7 +98,64 @@ const updateWorkerProfile = async (userId, profileData) => {
   );
 };
 
+const updateEmployerProfile = async (userId, profileData) => {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    const error = new Error("User not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (user.role !== "EMPLOYER") {
+    const error = new Error("Only employers can update an employer profile");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (!user.employerProfile) {
+    user.employerProfile = {};
+  }
+
+  if (profileData.type !== undefined) {
+    user.employerProfile.type = profileData.type;
+  }
+
+  if (profileData.type === "PROFESSIONAL") {
+    if (!profileData.companyName || !profileData.companyName.trim()) {
+      const error = new Error(
+        "Company name is required for professional employers"
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    user.employerProfile.companyName = profileData.companyName;
+  }
+
+  if (profileData.type === "INDIVIDUAL") {
+    user.employerProfile.companyName = undefined;
+  }
+
+  if (
+    profileData.companyName !== undefined &&
+    profileData.type === undefined &&
+    user.employerProfile.type === "PROFESSIONAL"
+  ) {
+    user.employerProfile.companyName = profileData.companyName;
+  }
+
+  if (profileData.professionalInfo !== undefined) {
+    user.employerProfile.professionalInfo = profileData.professionalInfo;
+  }
+
+  await user.save();
+
+  return user;
+};
+
 module.exports = {
   createUser,
   updateWorkerProfile,
+  updateEmployerProfile,
 };

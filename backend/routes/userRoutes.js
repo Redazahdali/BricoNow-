@@ -4,11 +4,13 @@ const {
   createUser,
   getCurrentUser,
   updateWorkerProfile,
+  updateEmployerProfile,
 } = require("../controllers/userController");
 
 const {
   createUserValidator,
   updateWorkerProfileValidator,
+  updateEmployerProfileValidator,
 } = require("../validators/userValidator");
 
 const validatorMiddleware = require("../middlewares/validatorMiddleware");
@@ -27,7 +29,7 @@ router.post(
   createUser
 );
 
-// Get authenticated user
+// Get current authenticated user
 router.get(
   "/me",
   authMiddleware,
@@ -42,6 +44,16 @@ router.patch(
   updateWorkerProfileValidator,
   validatorMiddleware,
   updateWorkerProfile
+);
+
+// Update employer profile
+router.patch(
+  "/me/employer-profile",
+  authMiddleware,
+  authorizationMiddleware("EMPLOYER"),
+  updateEmployerProfileValidator,
+  validatorMiddleware,
+  updateEmployerProfile
 );
 
 module.exports = router;

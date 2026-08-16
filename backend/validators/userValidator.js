@@ -102,7 +102,26 @@ const updateWorkerProfileValidator = [
     .isFloat({ min: -90, max: 90 })
     .withMessage("Latitude must be between -90 and 90"),
 ];
+const updateEmployerProfileValidator = [
+  body("type")
+    .optional()
+    .isIn(["INDIVIDUAL", "PROFESSIONAL"])
+    .withMessage("Employer type must be INDIVIDUAL or PROFESSIONAL"),
+
+  body("companyName")
+    .optional()
+    .trim()
+    .isLength({ max: 150 })
+    .withMessage("Company name cannot exceed 150 characters"),
+
+  body("professionalInfo")
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage("Professional info cannot exceed 1000 characters"),
+];
 module.exports = {
   createUserValidator,
   updateWorkerProfileValidator,
+  updateEmployerProfileValidator,
 };
