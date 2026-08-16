@@ -1,4 +1,5 @@
 const User = require("../models/userModel");
+const Skill = require("../models/skillModel");
 
 const createUser = async (userData) => {
   const existingUser = await User.findOne({
@@ -25,6 +26,79 @@ const createUser = async (userData) => {
   return User.create(userData);
 };
 
+const updateWorkerProfile = async (userId, profileData) => {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    const error = new Error("User not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (user.role !== "WORKER") {
+    const error = new Error("Only workers can update a worker profile");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (profileData.skills) {
+    const uniqueSkillIds = [
+      ...new Set(profileData.skills.map((skillId) => skillId.toString())),
+    ];
+
+    const existingSkills = await Skill.find({
+      _id: { $in: uniqueSkillIds },
+      active: true,
+    }).select("_id");
+
+    if (existingSkills.length !== uniqueSkillIds.length) {
+      const error = new Error(
+        "One or more selected skills do not exist or are inactive"
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    profileData.skills = uniqueSkillIds;
+  }
+
+  if (!user.workerProfile) {
+    user.workerProfile = {};
+  }
+
+  if (profileData.skills !== undefined) {
+    user.workerProfile.skills = profileData.skills;
+  }
+
+  if (profileData.availability !== undefined) {
+    user.workerProfile.availability = profileData.availability;
+  }
+
+  if (profileData.location !== undefined) {
+    user.workerProfile.location = profileData.location;
+  }
+
+  if (profileData.city !== undefined) {
+    user.workerProfile.city = profileData.city;
+  }
+
+  if (profileData.area !== undefined) {
+    user.workerProfile.area = profileData.area;
+  }
+
+  if (profileData.professionalInfo !== undefined) {
+    user.workerProfile.professionalInfo = profileData.professionalInfo;
+  }
+
+  await user.save();
+
+  return User.findById(user._id).populate(
+    "workerProfile.skills",
+    "name slug active"
+  );
+};
+
 module.exports = {
   createUser,
+  updateWorkerProfile,
 };

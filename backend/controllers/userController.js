@@ -13,6 +13,7 @@ const createUser = async (req, res, next) => {
     next(error);
   }
 };
+
 const getCurrentUser = async (req, res) => {
   res.status(200).json({
     success: true,
@@ -20,7 +21,25 @@ const getCurrentUser = async (req, res) => {
   });
 };
 
+const updateWorkerProfile = async (req, res, next) => {
+  try {
+    const user = await userService.updateWorkerProfile(
+      req.user._id,
+      req.body
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Worker profile updated successfully",
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createUser,
   getCurrentUser,
+  updateWorkerProfile,
 };

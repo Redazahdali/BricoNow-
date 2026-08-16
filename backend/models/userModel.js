@@ -38,6 +38,18 @@ const workerProfileSchema = new mongoose.Schema(
       default: undefined,
     },
 
+    city: {
+      type: String,
+      trim: true,
+      maxlength: 100,
+    },
+
+    area: {
+      type: String,
+      trim: true,
+      maxlength: 150,
+    },
+
     professionalInfo: {
       type: String,
       trim: true,
@@ -72,6 +84,8 @@ const employerProfileSchema = new mongoose.Schema(
     _id: false,
   }
 );
+
+
 
 const userSchema = new mongoose.Schema(
   {
@@ -158,6 +172,8 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+
 
 userSchema.index({
   "workerProfile.location": "2dsphere",
