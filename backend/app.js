@@ -5,8 +5,10 @@ const morgan = require("morgan");
 
 const skillRoutes = require("./routes/skillRoutes");
 const userRoutes = require("./routes/userRoutes");
-const errorMiddleware = require("./middlewares/errorMiddleware");
 const authRoutes = require("./routes/authRoutes");
+const jobRoutes = require("./routes/jobRoutes");
+
+const errorMiddleware = require("./middlewares/errorMiddleware");
 
 const app = express();
 
@@ -27,7 +29,9 @@ app.get("/api/health", (req, res) => {
 
 app.use("/api/skills", skillRoutes);
 app.use("/api/users", userRoutes);
-app.use(errorMiddleware);
 app.use("/api/auth", authRoutes);
+app.use("/api/jobs", jobRoutes);
+
+app.use(errorMiddleware);
 
 module.exports = app;
