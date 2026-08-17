@@ -92,9 +92,7 @@ const createJobValidator = [
       req.body.startDate &&
       new Date(endDate) < new Date(req.body.startDate)
     ) {
-      throw new Error(
-        "End date cannot be before start date"
-      );
+      throw new Error("End date cannot be before start date");
     }
 
     return true;
@@ -115,10 +113,15 @@ const createJobValidator = [
     .isObject()
     .withMessage("Compensation must be an object"),
 
-  body("compensation.amount")
+  body("compensation.mode")
+    .optional()
+    .isIn(["FIXED", "NEGOTIABLE"])
+    .withMessage("Compensation mode must be FIXED or NEGOTIABLE"),
+
+  body("compensation.proposedAmount")
     .optional()
     .isFloat({ min: 0 })
-    .withMessage("Compensation amount cannot be negative")
+    .withMessage("Proposed compensation amount cannot be negative")
     .toFloat(),
 
   body("compensation.currency")
@@ -129,16 +132,12 @@ const createJobValidator = [
       "Compensation currency must contain between 3 and 10 characters"
     ),
 
-  body("compensation.type")
+  body("compensation.unit")
     .optional()
-    .isIn([
-      "FIXED",
-      "DAILY",
-      "HOURLY",
-      "MONTHLY",
-      "NEGOTIABLE",
-    ])
-    .withMessage("Invalid compensation type"),
+    .isIn(["HOURLY", "DAILY", "MISSION", "MONTHLY"])
+    .withMessage(
+      "Compensation unit must be HOURLY, DAILY, MISSION or MONTHLY"
+    ),
 
   body("importantInformation")
     .optional()

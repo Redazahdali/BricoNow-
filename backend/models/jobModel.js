@@ -20,7 +20,13 @@ const locationSchema = new mongoose.Schema(
 
 const compensationSchema = new mongoose.Schema(
   {
-    amount: {
+    mode: {
+      type: String,
+      enum: ["FIXED", "NEGOTIABLE"],
+      default: "NEGOTIABLE",
+    },
+
+    proposedAmount: {
       type: Number,
       min: 0,
     },
@@ -29,13 +35,13 @@ const compensationSchema = new mongoose.Schema(
       type: String,
       trim: true,
       uppercase: true,
+      default: "MAD",
       maxlength: 10,
     },
 
-    type: {
+    unit: {
       type: String,
-      enum: ["FIXED", "DAILY", "HOURLY", "MONTHLY", "NEGOTIABLE"],
-      default: "NEGOTIABLE",
+      enum: ["HOURLY", "DAILY", "MISSION", "MONTHLY"],
     },
   },
   {
@@ -154,10 +160,12 @@ const jobSchema = new mongoose.Schema(
   }
 );
 
+// Recherche géographique des Jobs proches
 jobSchema.index({
   location: "2dsphere",
 });
 
+// Index pour les futures recherches / matching
 jobSchema.index({
   status: 1,
   mode: 1,

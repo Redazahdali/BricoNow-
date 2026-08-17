@@ -2,6 +2,7 @@ const express = require("express");
 
 const {
   createJob,
+  publishJob,
 } = require("../controllers/jobController");
 
 const {
@@ -16,6 +17,7 @@ const authorizationMiddleware = require(
 
 const router = express.Router();
 
+// Create a new job
 router.post(
   "/",
   authMiddleware,
@@ -23,6 +25,14 @@ router.post(
   createJobValidator,
   validatorMiddleware,
   createJob
+);
+
+// Publish a draft job
+router.patch(
+  "/:jobId/publish",
+  authMiddleware,
+  authorizationMiddleware("EMPLOYER"),
+  publishJob
 );
 
 module.exports = router;
