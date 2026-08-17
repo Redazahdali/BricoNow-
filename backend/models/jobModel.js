@@ -160,12 +160,12 @@ const jobSchema = new mongoose.Schema(
   }
 );
 
-// Recherche géographique des Jobs proches
+// Index géospatial pour recherche par proximité
 jobSchema.index({
   location: "2dsphere",
 });
 
-// Index pour les futures recherches / matching
+// Index pour les recherches classiques
 jobSchema.index({
   status: 1,
   mode: 1,

@@ -3,10 +3,12 @@ const express = require("express");
 const {
   createJob,
   publishJob,
+  getPublishedJobs,
 } = require("../controllers/jobController");
 
 const {
   createJobValidator,
+  getPublishedJobsValidator,
 } = require("../validators/jobValidator");
 
 const validatorMiddleware = require("../middlewares/validatorMiddleware");
@@ -17,7 +19,16 @@ const authorizationMiddleware = require(
 
 const router = express.Router();
 
-// Create a new job
+// WORKER - Get published jobs
+router.get(
+  "/",
+  authMiddleware,
+  authorizationMiddleware("WORKER"),
+  getPublishedJobsValidator,
+  validatorMiddleware,
+  getPublishedJobs
+);
+// EMPLOYER - Create a job
 router.post(
   "/",
   authMiddleware,
@@ -27,7 +38,7 @@ router.post(
   createJob
 );
 
-// Publish a draft job
+// EMPLOYER - Publish a draft job
 router.patch(
   "/:jobId/publish",
   authMiddleware,

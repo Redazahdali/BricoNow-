@@ -34,7 +34,26 @@ const publishJob = async (req, res, next) => {
   }
 };
 
+const getPublishedJobs = async (req, res, next) => {
+  try {
+    const result = await jobService.getPublishedJobs(
+      req.query
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Published jobs retrieved successfully",
+      data: result.jobs,
+      pagination: result.pagination,
+      geo: result.geo,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createJob,
   publishJob,
+  getPublishedJobs,
 };

@@ -1,4 +1,4 @@
-const { body } = require("express-validator");
+const { body, query } = require("express-validator");
 
 const createJobValidator = [
   body("mode")
@@ -154,6 +154,107 @@ const createJobValidator = [
     .withMessage("Conditions cannot exceed 1500 characters"),
 ];
 
+const getPublishedJobsValidator = [
+  query("skillId")
+    .optional()
+    .isMongoId()
+    .withMessage("Skill must be a valid MongoDB ObjectId"),
+
+  query("city")
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 100 })
+    .withMessage("City must contain between 2 and 100 characters"),
+
+  query("mode")
+    .optional()
+    .isIn(["EMPLOYMENT", "MISSION", "IMMEDIATE"])
+    .withMessage(
+      "Job mode must be EMPLOYMENT, MISSION or IMMEDIATE"
+    ),
+
+  query("scope")
+    .optional()
+    .trim()
+    .toUpperCase()
+    .isIn(["NEARBY", "ALL"])
+    .withMessage("Scope must be NEARBY or ALL"),
+
+  query("lat")
+    .optional()
+    .isFloat({ min: -90, max: 90 })
+    .withMessage("Latitude must be between -90 and 90")
+    .toFloat(),
+
+  query("lng")
+    .optional()
+    .isFloat({ min: -180, max: 180 })
+    .withMessage("Longitude must be between -180 and 180")
+    .toFloat(),
+
+  query("radius")
+    .optional()
+    .isFloat({ min: 1, max: 200 })
+    .withMessage("Radius must be between 1 and 200 kilometers")
+    .toFloat(),
+
+  query("lat").custom((value, { req }) => {
+    const hasLat =
+      req.query.lat !== undefined &&
+      req.query.lat !== "";
+
+    const hasLng =
+      req.query.lng !== undefined &&
+      req.query.lng !== "";
+
+    const scope =
+      req.query.scope?.toUpperCase();
+
+    const hasRadius =
+      req.query.radius !== undefined &&
+      req.query.radius !== "";
+
+    if (hasLat !== hasLng) {
+      throw new Error(
+        "Latitude and longitude must be provided together"
+      );
+    }
+
+    if (scope === "NEARBY" && !hasLat) {
+      throw new Error(
+        "Latitude and longitude are required for NEARBY scope"
+      );
+    }
+
+    if (hasRadius && !hasLat) {
+      throw new Error(
+        "Radius requires latitude and longitude"
+      );
+    }
+
+    if (scope === "ALL" && hasRadius) {
+      throw new Error(
+        "Radius cannot be used with ALL scope"
+      );
+    }
+
+    return true;
+  }),
+
+  query("page")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("Page must be an integer greater than or equal to 1")
+    .toInt(),
+
+  query("limit")
+    .optional()
+    .isInt({ min: 1, max: 50 })
+    .withMessage("Limit must be between 1 and 50")
+    .toInt(),
+];
+
 module.exports = {
   createJobValidator,
+  getPublishedJobsValidator,
 };
