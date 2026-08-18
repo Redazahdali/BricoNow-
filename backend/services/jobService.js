@@ -675,8 +675,33 @@ const getPublishedJobs = async (filters = {}) => {
   };
 };
 
+const getPublishedJobById = async (jobId) => {
+  const job = await Job.findOne({
+    _id: jobId,
+    status: "PUBLISHED",
+  })
+    .populate(
+      "employerId",
+      "firstName lastName role employerProfile"
+    )
+    .populate(
+      "skillId",
+      "name slug active"
+    );
+
+  if (!job) {
+    throw createError(
+      "Published job not found",
+      404
+    );
+  }
+
+  return job;
+};
+
 module.exports = {
   createJob,
   publishJob,
   getPublishedJobs,
+  getPublishedJobById,
 };

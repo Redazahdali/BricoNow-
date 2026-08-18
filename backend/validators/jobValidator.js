@@ -1,4 +1,4 @@
-const { body, query } = require("express-validator");
+const { body, query, param } = require("express-validator");
 
 const createJobValidator = [
   body("mode")
@@ -254,7 +254,15 @@ const getPublishedJobsValidator = [
     .toInt(),
 ];
 
+const getJobByIdValidator = [
+  param("jobId")
+    .isMongoId()
+    .withMessage("Job ID must be a valid MongoDB ObjectId"),
+];
+
+
 module.exports = {
   createJobValidator,
   getPublishedJobsValidator,
+  getJobByIdValidator,
 };

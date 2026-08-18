@@ -4,11 +4,13 @@ const {
   createJob,
   publishJob,
   getPublishedJobs,
+  getJobById,
 } = require("../controllers/jobController");
 
 const {
   createJobValidator,
   getPublishedJobsValidator,
+  getJobByIdValidator,
 } = require("../validators/jobValidator");
 
 const validatorMiddleware = require("../middlewares/validatorMiddleware");
@@ -28,6 +30,17 @@ router.get(
   validatorMiddleware,
   getPublishedJobs
 );
+
+// WORKER - Get one published job by ID
+router.get(
+  "/:jobId",
+  authMiddleware,
+  authorizationMiddleware("WORKER"),
+  getJobByIdValidator,
+  validatorMiddleware,
+  getJobById
+);
+
 // EMPLOYER - Create a job
 router.post(
   "/",
