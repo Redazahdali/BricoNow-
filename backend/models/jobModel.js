@@ -60,7 +60,12 @@ const jobSchema = new mongoose.Schema(
 
     mode: {
       type: String,
-      enum: ["EMPLOYMENT", "MISSION", "IMMEDIATE"],
+      enum: [
+        "EMPLOYMENT",
+        "CHANTIER",
+        "MISSION",
+        "HELP_REQUEST",
+      ],
       required: [true, "Job mode is required"],
       index: true,
     },
@@ -160,7 +165,7 @@ const jobSchema = new mongoose.Schema(
   }
 );
 
-// Index géospatial pour recherche par proximité
+// Index géospatial pour la recherche par proximité
 jobSchema.index({
   location: "2dsphere",
 });

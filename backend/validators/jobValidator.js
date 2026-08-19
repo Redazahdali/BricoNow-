@@ -4,8 +4,15 @@ const createJobValidator = [
   body("mode")
     .notEmpty()
     .withMessage("Job mode is required")
-    .isIn(["EMPLOYMENT", "MISSION", "IMMEDIATE"])
-    .withMessage("Job mode must be EMPLOYMENT, MISSION or IMMEDIATE"),
+    .isIn([
+      "EMPLOYMENT",
+      "CHANTIER",
+      "MISSION",
+      "HELP_REQUEST",
+    ])
+    .withMessage(
+      "Job mode must be EMPLOYMENT, CHANTIER, MISSION or HELP_REQUEST"
+    ),
 
   body("title")
     .trim()
@@ -168,9 +175,14 @@ const getPublishedJobsValidator = [
 
   query("mode")
     .optional()
-    .isIn(["EMPLOYMENT", "MISSION", "IMMEDIATE"])
+    .isIn([
+      "EMPLOYMENT",
+      "CHANTIER",
+      "MISSION",
+      "HELP_REQUEST",
+    ])
     .withMessage(
-      "Job mode must be EMPLOYMENT, MISSION or IMMEDIATE"
+      "Job mode must be EMPLOYMENT, CHANTIER, MISSION or HELP_REQUEST"
     ),
 
   query("scope")
@@ -244,7 +256,9 @@ const getPublishedJobsValidator = [
   query("page")
     .optional()
     .isInt({ min: 1 })
-    .withMessage("Page must be an integer greater than or equal to 1")
+    .withMessage(
+      "Page must be an integer greater than or equal to 1"
+    )
     .toInt(),
 
   query("limit")
@@ -257,9 +271,10 @@ const getPublishedJobsValidator = [
 const getJobByIdValidator = [
   param("jobId")
     .isMongoId()
-    .withMessage("Job ID must be a valid MongoDB ObjectId"),
+    .withMessage(
+      "Job ID must be a valid MongoDB ObjectId"
+    ),
 ];
-
 
 module.exports = {
   createJobValidator,

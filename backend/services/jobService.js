@@ -51,6 +51,44 @@ const validateCompensationForPublication = (compensation) => {
   }
 };
 
+const validateLocationForPublication = (location) => {
+  if (
+    !location ||
+    location.type !== "Point" ||
+    !Array.isArray(location.coordinates) ||
+    location.coordinates.length !== 2
+  ) {
+    throw createError(
+      "A valid location is required before publishing",
+      400
+    );
+  }
+
+  const [longitude, latitude] = location.coordinates;
+
+  if (
+    typeof longitude !== "number" ||
+    longitude < -180 ||
+    longitude > 180
+  ) {
+    throw createError(
+      "Job longitude must be between -180 and 180",
+      400
+    );
+  }
+
+  if (
+    typeof latitude !== "number" ||
+    latitude < -90 ||
+    latitude > 90
+  ) {
+    throw createError(
+      "Job latitude must be between -90 and 90",
+      400
+    );
+  }
+};
+
 const validateJobForPublication = (job) => {
   if (!job.title || !job.skillId || !job.workersNeeded) {
     throw createError("Job is incomplete", 400);
@@ -63,6 +101,35 @@ const validateJobForPublication = (job) => {
     );
   }
 
+  if (
+    ![
+      "EMPLOYMENT",
+      "CHANTIER",
+      "MISSION",
+      "HELP_REQUEST",
+    ].includes(job.mode)
+  ) {
+    throw createError(
+      "Invalid job mode",
+      400
+    );
+  }
+
+  /*
+   * La localisation est obligatoire
+   * uniquement au moment de la publication.
+   *
+   * Un DRAFT peut donc rester incomplet.
+   */
+  validateLocationForPublication(job.location);
+
+  /*
+   * City reste obligatoire pour le moment.
+   *
+   * Plus tard :
+   * carte -> reverse geocoding -> city / area
+   * city / area -> forward geocoding -> carte
+   */
   if (!job.city) {
     throw createError(
       "City is required before publishing",
@@ -72,22 +139,41 @@ const validateJobForPublication = (job) => {
 
   validateCompensationForPublication(job.compensation);
 
-  if (job.mode === "EMPLOYMENT" && !job.description) {
-    throw createError(
-      "Description is required for employment jobs",
-      400
-    );
+  /*
+   * EMPLOYMENT
+   * Emploi durable.
+   *
+   * Description obligatoire.
+   * Dates facultatives.
+   */
+  if (job.mode === "EMPLOYMENT") {
+    if (!job.description) {
+      throw createError(
+        "Description is required for employment jobs",
+        400
+      );
+    }
   }
 
-  if (job.mode === "MISSION") {
-    if (!job.startDate || !job.endDate) {
+  /*
+   * CHANTIER
+   * Plusieurs jours / semaines.
+   *
+   * startDate obligatoire.
+   * endDate facultative.
+   */
+  if (job.mode === "CHANTIER") {
+    if (!job.startDate) {
       throw createError(
-        "Start date and end date are required for missions",
+        "Start date is required for chantier jobs",
         400
       );
     }
 
-    if (job.endDate < job.startDate) {
+    if (
+      job.endDate &&
+      job.endDate < job.startDate
+    ) {
       throw createError(
         "End date cannot be before start date",
         400
@@ -95,14 +181,53 @@ const validateJobForPublication = (job) => {
     }
   }
 
-  if (job.mode === "IMMEDIATE") {
+  /*
+   * MISSION
+   * Quelques heures / 1 ou 2 jours.
+   *
+   * startDate obligatoire.
+   * endDate facultative.
+   */
+  if (job.mode === "MISSION") {
+    if (!job.startDate) {
+      throw createError(
+        "Start date is required for mission jobs",
+        400
+      );
+    }
+
     if (
-      !job.location ||
-      !Array.isArray(job.location.coordinates) ||
-      job.location.coordinates.length !== 2
+      job.endDate &&
+      job.endDate < job.startDate
     ) {
       throw createError(
-        "A valid location is required for immediate jobs",
+        "End date cannot be before start date",
+        400
+      );
+    }
+  }
+
+  /*
+   * HELP_REQUEST
+   * Aide ponctuelle locale.
+   *
+   * startDate obligatoire.
+   * endDate facultative.
+   */
+  if (job.mode === "HELP_REQUEST") {
+    if (!job.startDate) {
+      throw createError(
+        "Start date is required for help request jobs",
+        400
+      );
+    }
+
+    if (
+      job.endDate &&
+      job.endDate < job.startDate
+    ) {
+      throw createError(
+        "End date cannot be before start date",
         400
       );
     }
@@ -113,7 +238,10 @@ const createJob = async (employerId, jobData) => {
   const employer = await User.findById(employerId);
 
   if (!employer) {
-    throw createError("Employer not found", 404);
+    throw createError(
+      "Employer not found",
+      404
+    );
   }
 
   if (employer.role !== "EMPLOYER") {
@@ -144,24 +272,36 @@ const createJob = async (employerId, jobData) => {
 
   const job = await Job.create({
     employerId,
+
     mode: jobData.mode,
+
     title: jobData.title,
+
     skillId: jobData.skillId,
+
     workersNeeded: jobData.workersNeeded,
+
     description: jobData.description,
 
     location: jobData.location,
+
     city: jobData.city,
+
     area: jobData.area,
 
     startDate: jobData.startDate,
+
     endDate: jobData.endDate,
+
     startTime: jobData.startTime,
+
     endTime: jobData.endTime,
 
     compensation: jobData.compensation,
 
-    importantInformation: jobData.importantInformation,
+    importantInformation:
+      jobData.importantInformation,
+
     conditions: jobData.conditions,
 
     status: "DRAFT",
@@ -178,11 +318,19 @@ const createJob = async (employerId, jobData) => {
     );
 };
 
-const publishJob = async (employerId, jobId) => {
-  const employer = await User.findById(employerId);
+const publishJob = async (
+  employerId,
+  jobId
+) => {
+  const employer = await User.findById(
+    employerId
+  );
 
   if (!employer) {
-    throw createError("Employer not found", 404);
+    throw createError(
+      "Employer not found",
+      404
+    );
   }
 
   if (employer.role !== "EMPLOYER") {
@@ -202,10 +350,16 @@ const publishJob = async (employerId, jobId) => {
   const job = await Job.findById(jobId);
 
   if (!job) {
-    throw createError("Job not found", 404);
+    throw createError(
+      "Job not found",
+      404
+    );
   }
 
-  if (job.employerId.toString() !== employerId.toString()) {
+  if (
+    job.employerId.toString() !==
+    employerId.toString()
+  ) {
     throw createError(
       "You are not allowed to publish this job",
       403
@@ -248,15 +402,18 @@ const publishJob = async (employerId, jobId) => {
     );
 };
 
-const buildPublishedQuery = (filters = {}) => {
+const buildPublishedQuery = (
+  filters = {}
+) => {
   const query = {
     status: "PUBLISHED",
   };
 
   if (filters.skillId) {
-    query.skillId = new mongoose.Types.ObjectId(
-      filters.skillId
-    );
+    query.skillId =
+      new mongoose.Types.ObjectId(
+        filters.skillId
+      );
   }
 
   if (filters.city) {
@@ -275,7 +432,8 @@ const paginateAggregationResult = async (
   page,
   limit
 ) => {
-  const skip = (page - 1) * limit;
+  const skip =
+    (page - 1) * limit;
 
   pipeline.push({
     $facet: {
@@ -296,14 +454,17 @@ const paginateAggregationResult = async (
     },
   });
 
-  const aggregationResult = await Job.aggregate(pipeline);
+  const aggregationResult =
+    await Job.aggregate(pipeline);
 
-  const result = aggregationResult[0] || {
-    jobs: [],
-    totalCount: [],
-  };
+  const result =
+    aggregationResult[0] || {
+      jobs: [],
+      totalCount: [],
+    };
 
-  let jobs = result.jobs || [];
+  let jobs =
+    result.jobs || [];
 
   const totalJobs =
     result.totalCount.length > 0
@@ -313,19 +474,25 @@ const paginateAggregationResult = async (
   const totalPages =
     totalJobs === 0
       ? 0
-      : Math.ceil(totalJobs / limit);
+      : Math.ceil(
+          totalJobs / limit
+        );
 
-  jobs = await Job.populate(jobs, [
-    {
-      path: "employerId",
-      select:
-        "firstName lastName role employerProfile",
-    },
-    {
-      path: "skillId",
-      select: "name slug active",
-    },
-  ]);
+  jobs = await Job.populate(
+    jobs,
+    [
+      {
+        path: "employerId",
+        select:
+          "firstName lastName role employerProfile",
+      },
+      {
+        path: "skillId",
+        select:
+          "name slug active",
+      },
+    ]
+  );
 
   return {
     jobs,
@@ -335,35 +502,42 @@ const paginateAggregationResult = async (
       limit,
       totalJobs,
       totalPages,
-      hasNextPage: page < totalPages,
-      hasPreviousPage: page > 1,
+
+      hasNextPage:
+        page < totalPages,
+
+      hasPreviousPage:
+        page > 1,
     },
   };
 };
 
-const getPublishedJobs = async (filters = {}) => {
-  const page = Number(filters.page) || 1;
-  const limit = Number(filters.limit) || 10;
+const getPublishedJobs = async (
+  filters = {}
+) => {
+  const page =
+    Number(filters.page) || 1;
+
+  const limit =
+    Number(filters.limit) || 10;
 
   const hasGps =
     filters.lat !== undefined &&
     filters.lng !== undefined;
 
-  const latitude = hasGps
-    ? Number(filters.lat)
-    : null;
+  const latitude =
+    hasGps
+      ? Number(filters.lat)
+      : null;
 
-  const longitude = hasGps
-    ? Number(filters.lng)
-    : null;
+  const longitude =
+    hasGps
+      ? Number(filters.lng)
+      : null;
 
   /*
-   * Si scope n'est pas envoyé :
-   *
-   * GPS présent  -> NEARBY
-   * GPS absent   -> ALL
-   *
-   * Cela garde la compatibilité avec nos anciennes requêtes.
+   * GPS présent -> NEARBY
+   * GPS absent -> ALL
    */
   const scope =
     filters.scope?.toUpperCase() ||
@@ -373,9 +547,9 @@ const getPublishedJobs = async (filters = {}) => {
     buildPublishedQuery(filters);
 
   /*
-   * ==================================================
-   * MODE NEARBY
-   * ==================================================
+   * ============================================
+   * NEARBY
+   * ============================================
    */
   if (scope === "NEARBY") {
     if (!hasGps) {
@@ -390,7 +564,10 @@ const getPublishedJobs = async (filters = {}) => {
         ? Number(filters.radius)
         : 10;
 
-    if (radiusKm < 1 || radiusKm > 200) {
+    if (
+      radiusKm < 1 ||
+      radiusKm > 200
+    ) {
       throw createError(
         "Radius must be between 1 and 200 kilometers",
         400
@@ -402,6 +579,7 @@ const getPublishedJobs = async (filters = {}) => {
         $geoNear: {
           near: {
             type: "Point",
+
             coordinates: [
               longitude,
               latitude,
@@ -410,9 +588,11 @@ const getPublishedJobs = async (filters = {}) => {
 
           key: "location",
 
-          distanceField: "distanceMeters",
+          distanceField:
+            "distanceMeters",
 
-          maxDistance: radiusKm * 1000,
+          maxDistance:
+            radiusKm * 1000,
 
           spherical: true,
 
@@ -458,22 +638,14 @@ const getPublishedJobs = async (filters = {}) => {
   }
 
   /*
-   * ==================================================
-   * MODE ALL + GPS
-   *
-   * Tous les Jobs PUBLISHED.
-   *
-   * Jobs avec GPS :
-   * → distance calculée
-   * → tri proche vers loin
-   *
-   * Jobs sans GPS :
-   * → restent visibles
-   * → distanceKm = null
-   * → placés après les Jobs géolocalisés
-   * ==================================================
+   * ============================================
+   * ALL + GPS
+   * ============================================
    */
-  if (scope === "ALL" && hasGps) {
+  if (
+    scope === "ALL" &&
+    hasGps
+  ) {
     const jobsCollection =
       Job.collection.name;
 
@@ -486,9 +658,11 @@ const getPublishedJobs = async (filters = {}) => {
             $exists: false,
           },
         },
+
         {
           location: null,
         },
+
         {
           "location.coordinates": {
             $exists: false,
@@ -502,6 +676,7 @@ const getPublishedJobs = async (filters = {}) => {
         $geoNear: {
           near: {
             type: "Point",
+
             coordinates: [
               longitude,
               latitude,
@@ -510,7 +685,8 @@ const getPublishedJobs = async (filters = {}) => {
 
           key: "location",
 
-          distanceField: "distanceMeters",
+          distanceField:
+            "distanceMeters",
 
           spherical: true,
 
@@ -549,8 +725,11 @@ const getPublishedJobs = async (filters = {}) => {
 
             {
               $addFields: {
-                distanceMeters: null,
-                distanceKm: null,
+                distanceMeters:
+                  null,
+
+                distanceKm:
+                  null,
 
                 _sortDistance:
                   999999999999,
@@ -568,7 +747,8 @@ const getPublishedJobs = async (filters = {}) => {
       },
 
       {
-        $unset: "_sortDistance",
+        $unset:
+          "_sortDistance",
       },
     ];
 
@@ -593,15 +773,10 @@ const getPublishedJobs = async (filters = {}) => {
   }
 
   /*
-   * ==================================================
-   * MODE ALL SANS GPS
-   *
-   * Tous les Jobs PUBLISHED.
-   * Tri par date.
-   * Pas de distance disponible.
-   * ==================================================
+   * ============================================
+   * ALL SANS GPS
+   * ============================================
    */
-
   const classicQuery = {
     status: "PUBLISHED",
   };
@@ -649,7 +824,9 @@ const getPublishedJobs = async (filters = {}) => {
   const totalPages =
     totalJobs === 0
       ? 0
-      : Math.ceil(totalJobs / limit);
+      : Math.ceil(
+          totalJobs / limit
+        );
 
   return {
     jobs,
@@ -659,8 +836,10 @@ const getPublishedJobs = async (filters = {}) => {
       limit,
       totalJobs,
       totalPages,
+
       hasNextPage:
         page < totalPages,
+
       hasPreviousPage:
         page > 1,
     },
@@ -675,19 +854,22 @@ const getPublishedJobs = async (filters = {}) => {
   };
 };
 
-const getPublishedJobById = async (jobId) => {
-  const job = await Job.findOne({
-    _id: jobId,
-    status: "PUBLISHED",
-  })
-    .populate(
-      "employerId",
-      "firstName lastName role employerProfile"
-    )
-    .populate(
-      "skillId",
-      "name slug active"
-    );
+const getPublishedJobById = async (
+  jobId
+) => {
+  const job =
+    await Job.findOne({
+      _id: jobId,
+      status: "PUBLISHED",
+    })
+      .populate(
+        "employerId",
+        "firstName lastName role employerProfile"
+      )
+      .populate(
+        "skillId",
+        "name slug active"
+      );
 
   if (!job) {
     throw createError(
