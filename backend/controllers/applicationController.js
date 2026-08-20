@@ -7,7 +7,7 @@ const createApplication = async (req, res, next) => {
       req.params.jobId
     );
 
-    res.status(201).json({
+    res.status(200).json({
       success: true,
       message: "Application submitted successfully",
       data: application,
