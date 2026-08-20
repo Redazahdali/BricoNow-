@@ -2,6 +2,8 @@ const Application = require("../models/applicationModel");
 const Job = require("../models/jobModel");
 const Skill = require("../models/skillModel");
 const User = require("../models/userModel");
+const Message = require("../models/messageModel");
+const conversationService = require("./conversationService");
 
 const createError = (message, statusCode) => {
   const error = new Error(message);
@@ -51,7 +53,11 @@ const buildJobSnapshot = (job, skill) => {
   };
 };
 
-const createApplication = async (workerId, jobId) => {
+const createApplication = async (
+  workerId,
+  jobId,
+  messageText
+) => {
   const worker = await User.findById(workerId);
 
   if (!worker) {
@@ -102,8 +108,17 @@ const createApplication = async (workerId, jobId) => {
 
   const jobSnapshot = buildJobSnapshot(job, skill);
 
+  const normalizedMessage =
+    typeof messageText === "string"
+      ? messageText.trim()
+      : "";
+
+  let application = null;
+  let conversation = null;
+  let message = null;
+
   try {
-    const application = await Application.create({
+    application = await Application.create({
       jobId: job._id,
       workerId: worker._id,
       employerId: job.employerId,
@@ -114,8 +129,6 @@ const createApplication = async (workerId, jobId) => {
         status: "LOCKED",
       },
     });
-
-    return application;
   } catch (error) {
     if (error && error.code === 11000) {
       throw createError(
@@ -126,6 +139,74 @@ const createApplication = async (workerId, jobId) => {
 
     throw error;
   }
+
+  try {
+    conversation =
+      await conversationService.createApplicationConversation({
+        applicationId: application._id,
+        workerId: worker._id,
+        employerId: job.employerId,
+      });
+
+    if (normalizedMessage.length > 0) {
+      message = await Message.create({
+        conversationId: conversation._id,
+        senderId: worker._id,
+        type: "TEXT",
+        text: normalizedMessage,
+        readAt: null,
+      });
+
+      conversation.lastMessageAt = message.createdAt;
+
+      await conversation.save();
+    }
+  } catch (error) {
+    // Rollback MVP :
+    // tant que MongoDB n'utilise pas encore de transaction,
+    // on nettoie manuellement les documents créés.
+
+    if (message) {
+      try {
+        await Message.deleteOne({
+          _id: message._id,
+        });
+      } catch (rollbackError) {
+        console.error(
+          "Failed to rollback message:",
+          rollbackError
+        );
+      }
+    }
+
+    if (conversation) {
+      try {
+        await conversation.deleteOne();
+      } catch (rollbackError) {
+        console.error(
+          "Failed to rollback conversation:",
+          rollbackError
+        );
+      }
+    }
+
+    if (application) {
+      try {
+        await Application.deleteOne({
+          _id: application._id,
+        });
+      } catch (rollbackError) {
+        console.error(
+          "Failed to rollback application:",
+          rollbackError
+        );
+      }
+    }
+
+    throw error;
+  }
+
+  return application;
 };
 
 module.exports = {
