@@ -7,6 +7,7 @@ const skillRoutes = require("./routes/skillRoutes");
 const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/authRoutes");
 const jobRoutes = require("./routes/jobRoutes");
+const applicationRoutes = require("./routes/applicationRoutes");
 
 const errorMiddleware = require("./middlewares/errorMiddleware");
 
@@ -31,6 +32,7 @@ app.use("/api/skills", skillRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/jobs", jobRoutes);
+app.use("/api/jobs", applicationRoutes);
 
 app.use(errorMiddleware);
 

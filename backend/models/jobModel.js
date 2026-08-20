@@ -153,6 +153,17 @@ const jobSchema = new mongoose.Schema(
       maxlength: 1500,
     },
 
+    applicationsOpen: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+
+    applicationsClosedAt: {
+      type: Date,
+      default: null,
+    },
+
     status: {
       type: String,
       enum: ["DRAFT", "PUBLISHED", "CLOSED", "CANCELLED"],
